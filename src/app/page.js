@@ -5,11 +5,22 @@ import { useEffect, useRef, useState } from "react";
 import { Chat } from "@/components/Chat";
 import Sidebar from "@/components/Sidebar";
 
+const personalities = {
+  intellectual: "안녕? 나는 엘리엇이야. 오늘은 어떤 지적인 이야기를 나눌까?",
+  funny: "안녕? 나는 엘리엇이야. 오늘은 무슨 재미난 일이 있었니?",
+};
+
+const apiUrls = {
+  intellectual: "/api/chat",
+  funny: "/api/chat"
+};
+
 export default function Home() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [currentConversation, setCurrentConversation] = useState(null);
+  const [personality, setPersonality] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -21,7 +32,7 @@ export default function Home() {
     setMessages(updatedMessages);
     setLoading(true);
 
-    const response = await fetch("/api/chat", {
+    const response = await fetch(apiUrls[personality], {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,12 +55,16 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    setMessages([
-      {
-        role: "model",
-        parts: [{ text: "안녕? 나는 엘리엇이야. 오늘은 무슨 일이 있었니?" }],
-      },
-    ]);
+    if (personality) {
+      setMessages([
+        {
+          role: "model",
+          parts: [{ text: personalities[personality] }],
+        },
+      ]);
+    } else {
+      setMessages([]);
+    }
   };
 
   const handleNewConversation = () => {
@@ -67,13 +82,18 @@ export default function Home() {
     setMessages(conversations[index].messages);
   };
 
+  const handleSetPersonality = (selectedPersonality) => {
+    setPersonality(selectedPersonality);
+    handleReset();
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
     handleReset();
-  }, []);
+  }, [personality]);
 
   useEffect(() => {
     if (currentConversation !== null) {
@@ -96,6 +116,7 @@ export default function Home() {
         <Sidebar
           conversations={conversations}
           onSelectConversation={handleSelectConversation}
+          onSetPersonality={handleSetPersonality}
         />
         <div className="flex-1 flex flex-col">
           <div className="flex h-[50px] sm:h-[60px] border-b border-neutral-300 py-2 px-2 sm:px-8 items-center justify-between">
@@ -108,11 +129,29 @@ export default function Home() {
 
           <div className="flex-1 overflow-auto sm:px-10 pb-4 sm:pb-10">
             <div className="max-w-[800px] mx-auto mt-4 sm:mt-12">
-              <Chat
-                messages={messages}
-                loading={loading}
-                onSendMessage={handleSend}
-              />
+              {personality === null ? (
+                <div className="flex flex-col items-center">
+                  <h2 className="text-2xl font-bold mb-4">Set Personality</h2>
+                  <button
+                    className="btn btn-primary mb-2"
+                    onClick={() => handleSetPersonality('intellectual')}
+                  >
+                    안경 척 모드
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleSetPersonality('funny')}
+                  >
+                    주접이 모드
+                  </button>
+                </div>
+              ) : (
+                <Chat
+                  messages={messages}
+                  loading={loading}
+                  onSendMessage={handleSend}
+                />
+              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -127,3 +166,4 @@ export default function Home() {
     </>
   );
 }
+
